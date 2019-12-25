@@ -1,3 +1,7 @@
+Makefile
+aes-sample*
+openssl_AEScrypto*
+
 # Prerequisites
 *.d
 
