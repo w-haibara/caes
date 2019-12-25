@@ -79,17 +79,6 @@ int ShiftRows(uint8_t* state){
 	return 0;
 }
 
-int InvShiftRows(uint8_t* state){
-	for(int i=1; i<4; i++){
-		for(int j=0; j<i; j++){
-			xorSwap(&state[12+i],&state[8+i]);
-			xorSwap(&state[ 8+i],&state[4+i]);
-			xorSwap(&state[ 4+i],&state[  i]);
-		}
-	}
-	return 0;
-}
-
 #define X2(I) (I<<1)^((I & 0x80) ? 0x1b : 0x00)
 #define X3(I) X2(I)^I
 
@@ -131,14 +120,11 @@ uint32_t rcon[11] = {
 	0x00000036
 };
 
-uint32_t RotWord(uint32_t word)
-{
-	/* a3 a2 a1 a0 -> a0 a3 a2 a1 */
+uint32_t RotWord(uint32_t word){
 	return word << 24 | word >> 8;
 }
 
-uint32_t SubWord(uint32_t word)
-{
+uint32_t SubWord(uint32_t word){
 	uint32_t val = word;
 	uint8_t* p = (uint8_t*)&val;
 	p[0] = sbox[p[0]];
@@ -148,38 +134,16 @@ uint32_t SubWord(uint32_t word)
 	return val;
 }
 
-extern void ExpandKey(const uint32_t* key /*Nk*/, uint32_t* w /*Nb*(Nr+1)*/)
-{
-	int i;
-	uint8_t Nr = 10; //key_round_table[aes_type].Nr;
-	uint8_t Nk = 4; //key_round_table[aes_type].Nk;
-	uint8_t Nb = 4;
-
-	memcpy(w, key, Nk*4);
-	for (i=Nk; i<Nb*(Nr+1); i++) {
+extern void ExpandKey(const uint32_t* key, uint32_t* w){
+	memcpy(w, key, 16);
+	for (int i=4; i<44; i++) {
 		uint32_t temp = w[i-1];
-		if (i%Nk == 0) {
-			temp = SubWord(RotWord(temp)) ^ rcon[i/Nk];
-		} else if (6<Nk && i%Nk == 4) {
-			temp = SubWord(temp);
+		if (i%4 == 0) {
+			temp = SubWord(RotWord(temp)) ^ rcon[i/4];
 		}
-		w[i] = w[i-Nk] ^ temp;
+		w[i] = w[i-4] ^ temp;
 	}
 }
-/*
-   void ExpandKey(uint32_t key[4], uint32_t w[44]){
-   for (int i=0; i<4; i++) {
-   w[i] = key[i];
-   }
-   for (int i=4; i<44; i++) {
-   uint32_t temp = w[i-1];
-   if (i%4 == 0) {
-   temp = SubWord(RotWord(temp)) ^ rcon[i/4];
-   }
-   w[i] = w[i-4] ^ temp;
-   }
-   }
- */
 
 int AddRoundKey(uint8_t* state, uint32_t* roundKeys){
 	uint32_t* state32 = (uint32_t*)state;
@@ -195,7 +159,7 @@ int aes(uint8_t* state, uint32_t* key){
 	ExpandKey(key, roundKeys);
 	AddRoundKey(state, &roundKeys[0]);
 
-	for(int i=1; i<=9; i++){	
+	for(int i=1; i<=9; i++){
 		SubBytes(state);
 		ShiftRows(state);
 		MixColumns(state);
@@ -210,39 +174,18 @@ int aes(uint8_t* state, uint32_t* key){
 }
 int main(void){
 	uint32_t key[4] = {};
-	memcpy(key, "0123456789123456", 16);
-	//uint8_t* k=(uint8_t*)key; for(uint8_t i=0;i<16;i++) k[i]=i*2;
+	//memcpy(key, "0123456789123456", 16);
+	uint8_t* k=(uint8_t*)key; for(uint8_t i=0;i<16;i++) k[i]=i*2;
 
 	uint8_t state[16] = {};
 	memcpy(state, "AES  encryption!", 16);
 	//scanf("%s", (char *)state);
-	//for(uint8_t i=0;i<16;i++) state[i]=i;
+	for(uint8_t i=0;i<16;i++) state[i]=i;
 
 	print_state(state); printf("\n");
 	print_key(key);     printf("\n");
 	aes(state, key);    printf("\n");
 	print_state(state); printf("\n");
-
-	/*
-	   printf("SubBytes \n");
-	   SubBytes(state);
-	   print_state(state);
-
-	   printf("ShiftRows \n");
-	   ShiftRows(state);
-	   print_state(state);
-
-	   printf("MixColumns \n");
-	   MixColumns(state);
-	   print_state(state);
-
-	   uint32_t keykey[4] = {0xff,0xff,0xff,0xff};
-	   printf("AddRoundKey \n");
-	   AddRoundKey(state, keykey);
-	   print_state(state);
-	 */
-	//	print_state(state);
-
 
 	return 0;
 }
