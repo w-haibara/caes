@@ -1,7 +1,5 @@
 aes
-Makefile
-aes-sample*
-openssl_AEScrypto*
+aes-ctr
 
 # Prerequisites
 *.d
