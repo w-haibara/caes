@@ -2,7 +2,7 @@ KEY
 NONCE
 ENCRYPTED
 DECRYPTED
-aes
+aes-128
 aes-ctr
 key-gen
 
