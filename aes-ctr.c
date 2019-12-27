@@ -1,3 +1,5 @@
+#include "print.h"
+#include "fileio.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,49 +22,6 @@ uint8_t sbox[] = {
 	0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
 	0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
 };
-
-void print_state(uint8_t* state){
-	unsigned char output_data[17] = {};
-	memcpy(output_data, state, 16);
-	printf("state : ");
-	for(int i=0; i<16; i+=4){
-		for(int j=0; j<4; j++){
-			printf("%02x ", output_data[i+j]);
-		}
-		//printf("\n");
-	}
-	printf("\n");
-}
-
-void print_state_n(uint8_t* state, uint64_t n){
-	for(uint64_t i=0; i<n; i++){
-		printf("[%0ld]", i); print_state(&state[16*i]);
-	}
-}
-
-void print_key(uint32_t* key){
-	printf("key   : ");
-	for(int i=0; i<4; i++){
-		printf("%04x ", key[i]);
-	}
-	printf("\n");
-}
-
-void print_round_key(uint32_t* key){
-	for(int i=0; i<11; i++){
-		printf("[%02d] ", i); print_key(key+i*4);
-	}
-}
-
-void print_key_n(uint32_t* key, uint64_t n){
-	for(uint64_t i=0; i<n; i++){
-		printf("[%0ld]", i); print_key(key);
-	}
-}
-
-void print_ctr(uint64_t* ctr){
-	printf("ctr   : %016lx %016lx \n", ctr[1], ctr[0]);
-}
 
 int SubBytes(uint8_t* state){
 	for(int i=0; i<16; i++){
@@ -185,58 +144,62 @@ int aes(uint8_t* state, uint32_t* key){
 	return 0;
 }
 
-void aes_ctr(uint8_t state_num, uint8_t state[16*state_num], uint32_t key[4*state_num],uint64_t nonce_num, uint64_t nonce[nonce_num]){
-	for(uint64_t nn=0; nn<nonce_num; nn++){
-		uint64_t ctr[2] = {};
-		ctr[1] = nonce[nn];
-
-		for(int sn=0; sn<state_num; sn++){
-			//			printf("\n[%02d]===================================================\n", sn);
-			//			print_state(&state[sn]);
-			//			print_ctr(ctr);
-
-			aes((uint8_t*)ctr, &key[4*nn]);
-
-			//			print_ctr(ctr);
-
-			for(uint8_t j=0; j<16; j++){
-				state[16*sn + j] ^= ((uint8_t*)ctr)[j];
-			}
-
-			//			print_state(&state[sn]);
-
-			ctr[0] = sn+1; ctr[1] = nonce[nn];
+void aes_ctr(uint8_t state_num, uint8_t state[16*state_num], uint32_t key[4*state_num],uint64_t nonce){
+	uint64_t ctr[2] = {};
+	ctr[1] = nonce;
+	for(int sn=0; sn<state_num; sn++){
+		//			printf("\n[%02d]===================================================\n", sn);
+		//			print_state(&state[sn]);
+		//			print_ctr(ctr);
+		aes((uint8_t*)ctr, key);
+		//			print_ctr(ctr);
+		for(uint8_t j=0; j<16; j++){
+			state[16*sn + j] ^= ((uint8_t*)ctr)[j];
 		}
+		//			print_state(&state[sn]);
+		ctr[0] = sn+1; ctr[1] = nonce;
 	}
 }
 
 int main(void){
-	uint64_t nonce_num = 1;
-	uint64_t nonce[nonce_num];
-	nonce[0] = 0x123456789abcdef;
+	char* plaintext_file_name = "PLAINTEXT";
+	char* key_file_name       = "KEY";
+	char* nonce_file_name     = "NONCE";
+	char* encrypted_file_name = "ENCRYPTED";
+	char* decrypted_file_name = "DECRYPT";
 
-	uint32_t key[4*nonce_num];
-	//memcpy(key, "0123456789123456", 16);
-	for(uint32_t i=0;i<(4*nonce_num);i++) key[i]=i;
+	uint64_t  plaintext_length = 0;
+	uint8_t*  state = read(&plaintext_length, plaintext_file_name);
+	uint64_t  block_num = plaintext_length/16 + 1;
 
-	uint8_t block_num = 10;
-	uint8_t state[16*block_num];
-	//memcpy(state, "AES  encryption!", 16);
-	//scanf("%s", (char *)state);
-	for(uint8_t i=0;i<(16*block_num);i++) state[i]=i;
+	uint64_t  key_num = 0;
+	uint32_t* key = (uint32_t*)read(&key_num, key_file_name);
+
+	uint64_t  nonce_num = 0;
+	uint64_t* nonce = (uint64_t*)read(&nonce_num, nonce_file_name);
 
 	printf("--- PLAINTEXT ---\n");
 	print_state_n(state, block_num); printf("\n");
+
 	printf("--- KEY       ---\n");
-	print_key_n(key, nonce_num);     printf("\n");
-
+	print_key(key);                  printf("\n");
+	
+	printf("--- NONCE     ---\n");
+	print_nonce((uint32_t*)nonce);   printf("\n");
+	
 	printf("--- ENCRYPT   ---\n");
-	aes_ctr(block_num, state, key, nonce_num, nonce);
+	aes_ctr(block_num, state, key, *nonce);
 	print_state_n(state, block_num); printf("\n");
-
+	write(state, plaintext_length, encrypted_file_name);
+	
 	printf("--- DECRYPT   ---\n");
-	aes_ctr(block_num, state, key, nonce_num, nonce);
+	aes_ctr(block_num, state, key, *nonce);
 	print_state_n(state, block_num); printf("\n");
+	write(state, plaintext_length, decrypted_file_name);
+
+	free(state);
+	free(key);
+	free(nonce);
 
 	return 0;
 }

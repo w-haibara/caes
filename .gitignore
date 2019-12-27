@@ -1,5 +1,10 @@
+KEY
+NONCE
+ENCRYPTED
+DECRYPTED
 aes
 aes-ctr
+key-gen
 
 # Prerequisites
 *.d
