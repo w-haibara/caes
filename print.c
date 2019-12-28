@@ -48,7 +48,7 @@ void print_nonce(uint32_t* nonce){
 	for(int i=0; i<2; i++){
 		printf("%08x ", nonce[i]);
 	}
-	printf("+ counter \n");
+	printf("\n");
 }
 
 void print_ctr(uint64_t* ctr){
