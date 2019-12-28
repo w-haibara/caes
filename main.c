@@ -14,13 +14,25 @@ int main(void){
 
 	uint64_t  plaintext_length = 0;
 	uint8_t*  state = read(&plaintext_length, plaintext_file_name);
+	if(state == NULL){
+		printf("Error: can't open \"%s\"\n", plaintext_file_name);
+		return 1;
+	}
 	uint64_t  block_num = plaintext_length/16 + 1;
 
 	uint64_t  key_num = 0;
 	uint32_t* key = (uint32_t*)read(&key_num, key_file_name);
+	if(key == NULL){
+		printf("Error: can't open \"%s\"\n", key_file_name);
+		return 1;
+	}
 
 	uint64_t  nonce_num = 0;
 	uint64_t* nonce = (uint64_t*)read(&nonce_num, nonce_file_name);
+	if(nonce == NULL){
+		printf("Error: can't open \"%s\"\n", nonce_file_name);
+		return 1;
+	}
 
 	printf("--- PLAINTEXT ---\n");
 	print_state_n(state, block_num); printf("\n");
