@@ -1,13 +1,13 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
 
-ALL: aes-128 aes-ctr key-gen  
+ALL: aes-ctr key-gen  
 
-aes: aes-128.c
-	$(CC) $(CFLAGS) -o aes-128 aes_128.c
-
-aes-ctr: aes-ctr.c
-	$(CC) $(CFLAGS) -o aes-ctr aes-ctr.c fileio.c print.c
+aes-ctr: main.c
+	$(CC) $(CFLAGS) -o aes-ctr main.c aes.c fileio.c print.c
 
 key-gen: key-gen.c
 	$(CC) $(CFLAGS) -o key-gen key-gen.c fileio.c
+
+clean:
+	rm aes-ctr key-gen
